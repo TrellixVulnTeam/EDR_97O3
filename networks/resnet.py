@@ -1,15 +1,12 @@
 import torch
 import torch.nn as nn
-from torch.utils.model_zoo import load_url as load_state_dict_from_url
-
-model_url = 'https://download.pytorch.org/models/resnet50-19c8e357.pth'
 
 class Bottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, inplanes, planes, stride = 1):
         super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size = 1, bias = False)
+        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size = 1, bias = False)
         self.bn1 = nn.BatchNorm2d(planes)
         self.conv2 = nn.Conv2d(planes, planes, kernel_size = 3, stride = stride, padding = 1, bias = False)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -17,9 +14,9 @@ class Bottleneck(nn.Module):
         self.bn3 = nn.BatchNorm2d(planes * self.expansion)
         self.relu = nn.ReLU(inplace = True)
         self.shortcut = nn.Sequential()
-        if stride != 1 or in_planes != planes * self.expansion:
+        if stride != 1 or inplanes != planes * self.expansion:
             self.shortcut = nn.Sequential(
-                nn.Conv2d(in_planes, self.expansion * planes, kernel_size = 1, stride = stride, bias = False),
+                nn.Conv2d(inplanes, self.expansion * planes, kernel_size = 1, stride = stride, bias = False),
                 nn.BatchNorm2d(planes * self.expansion))
 
     def forward(self, x):
@@ -39,7 +36,7 @@ class Bottleneck(nn.Module):
 class ResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes = 1000):
         super(ResNet, self).__init__()
-        self.in_planes = 64
+        self.inplanes = 64
         
         self.conv1 = nn.Conv2d(3, 64, kernel_size = 7, stride = 2, padding = 3, bias = False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -62,10 +59,10 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, planes, num_blocks, stride):
         layers = []
-        layers.append(block(self.in_planes, planes, stride))
-        self.in_planes = planes * block.expansion
+        layers.append(block(self.inplanes, planes, stride))
+        self.inplanes = planes * block.expansion
         for _ in range(1, num_blocks):
-            layers.append(block(self.in_planes, planes))
+            layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
 
@@ -84,9 +81,7 @@ class ResNet(nn.Module):
         out = self.linear2(out)
         return out
 
-def resnet50(num_classes = 1000, pretrained = False):
-    model = ResNet(block = Bottleneck, layers = [3, 4, 6, 3], num_classes = 1000)
-    if pretrained:
-        state_dict = load_state_dict_from_url(model_url, progress = True)
-        model.load_state_dict(state_dict, strict = False)
+def resnet50(num_classes = 32):
+    model = ResNet(block = Bottleneck, num_blocks = [3, 4, 6, 3], num_classes = num_classes)
+
     return model
